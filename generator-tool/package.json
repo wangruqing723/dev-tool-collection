@@ -133,17 +133,19 @@
     ],
     "dependencies": {
         "@raycast/api": "^1.104.17",
-        "@raycast/utils": "^2.2.5"
+        "@raycast/utils": "^2.2.5",
+        "qrcode": "1.5.4"
     },
     "devDependencies": {
         "@raycast/eslint-config": "^2.0.4",
+        "@types/jest": "^29.5.12",
         "@types/node": "^25.9.1",
+        "@types/qrcode": "1.5.6",
         "@types/react": "^19.2.15",
         "eslint": "^10.4.0",
         "jest": "^29.7.0",
-        "@types/jest": "^29.5.12",
-        "ts-jest": "^29.1.2",
         "prettier": "^3.8.3",
+        "ts-jest": "^29.1.2",
         "typescript": "^6.0.3"
     },
     "scripts": {
