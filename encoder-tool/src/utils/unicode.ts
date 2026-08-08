@@ -156,8 +156,18 @@ export function decodeUnicodeSequence(input: string): string {
     return decodeUnicodeStdFormat(trimmed);
   }
 
+  // 纯数字串存在歧义："0061" 既是合法十六进制也是合法十进制。
+  // 判别信号是前导零：十进制不会写前导零，而 toHexFormat 固定补齐 4 位，
+  // 所以 ASCII 字符的十六进制必然带前导零（"abc" → "0061 0062 0063"）。
+  // 不这样区分，"abc" 的十六进制会被当成十进制 61/62/63 解出 "=>?"。
+  const digitTokens = trimmed.split(/\s+/).filter(Boolean);
+  const looksLikePaddedHex =
+    digitTokens.length > 0 &&
+    digitTokens.every((t) => /^\d{4,6}$/.test(t)) &&
+    digitTokens.some((t) => t.startsWith("0"));
+
   // 尝试十进制格式（纯数字和空格）
-  if (/^\d+(\s+\d+)*$/.test(trimmed)) {
+  if (/^\d+(\s+\d+)*$/.test(trimmed) && !looksLikePaddedHex) {
     return decodeDecimalFormat(trimmed);
   }
 
