@@ -89,7 +89,7 @@ export default function UnicodeCommand() {
         <List.Section title={`Decode: ${result.decodedText}`}>
           <List.Item
             title={result.decodedText}
-            subtitle={`${result.decodedText.length} character${result.decodedText.length !== 1 ? "s" : ""}`}
+            subtitle={`${[...result.decodedText].length} character${[...result.decodedText].length !== 1 ? "s" : ""}`}
             actions={
               <ActionPanel>
                 <Action.CopyToClipboard

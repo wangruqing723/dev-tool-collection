@@ -20,13 +20,13 @@ export interface CodePoint {
 export function detectInputType(input: string): "text" | "unicode" | "unknown" {
   const trimmed = input.trim();
 
-  // 检查 \uXXXX 格式
-  if (/\\u[0-9a-fA-F]{4}/.test(trimmed)) {
+  // 检查 \uXXXX 与 \u{XXXXX} 格式（后者用于 BMP 外字符，如 emoji）
+  if (/\\u(\{[0-9a-fA-F]{1,6}\}|[0-9a-fA-F]{4})/.test(trimmed)) {
     return "unicode";
   }
 
-  // 检查 U+XXXX 格式
-  if (/U\+[0-9a-fA-F]{4}/.test(trimmed)) {
+  // 检查 U+XXXX 格式（码点可多于 4 位）
+  if (/U\+[0-9a-fA-F]{4,6}/i.test(trimmed)) {
     return "unicode";
   }
 
@@ -39,19 +39,32 @@ export function detectInputType(input: string): "text" | "unicode" | "unknown" {
   return "text";
 }
 
+// 取字符的完整码点。
+// 注意：[...text] 已按码点拆分，但 charCodeAt(0) 只取第一个 UTF-16 码元，
+// 对 BMP 外字符（emoji 等代理对）会丢掉低位，必须用 codePointAt。
+function codePointOf(char: string): number {
+  return char.codePointAt(0) as number;
+}
+
 // 将文本转换为十六进制格式（空格分隔）
 export function toHexFormat(text: string): string {
   return [...text]
     .map((char) =>
-      char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"),
+      codePointOf(char).toString(16).toUpperCase().padStart(4, "0"),
     )
     .join(" ");
 }
 
-// 将文本转换为 JavaScript \uXXXX 格式
+// 将文本转换为 JavaScript 格式。
+// BMP 内用 \uXXXX；BMP 外用 \u{XXXXX}（\uXXXX 表示不了超过 0xFFFF 的码点）。
 export function toJSFormat(text: string): string {
   return [...text]
-    .map((char) => "\\u" + char.charCodeAt(0).toString(16).padStart(4, "0"))
+    .map((char) => {
+      const cp = codePointOf(char);
+      return cp > 0xffff
+        ? `\\u{${cp.toString(16).toUpperCase()}}`
+        : "\\u" + cp.toString(16).padStart(4, "0");
+    })
     .join("");
 }
 
@@ -60,28 +73,33 @@ export function toUnicodeStdFormat(text: string): string {
   return [...text]
     .map(
       (char) =>
-        "U+" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"),
+        "U+" + codePointOf(char).toString(16).toUpperCase().padStart(4, "0"),
     )
     .join(" ");
 }
 
 // 将文本转换为十进制格式（空格分隔）
 export function toDecimalFormat(text: string): string {
-  return [...text].map((char) => char.charCodeAt(0).toString()).join(" ");
+  return [...text].map((char) => codePointOf(char).toString()).join(" ");
 }
 
-// 从 \uXXXX 格式解码
+// 从 \uXXXX 与 \u{XXXXX} 格式解码。
+// 用 fromCodePoint 而非 fromCharCode，才能还原 BMP 外字符。
 function decodeJSFormat(input: string): string {
-  return input.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16)),
+  return input.replace(
+    /\\u(?:\{([0-9a-fA-F]{1,6})\}|([0-9a-fA-F]{4}))/g,
+    (_, braced, plain) => String.fromCodePoint(parseInt(braced ?? plain, 16)),
   );
 }
 
-// 从 U+XXXX 格式解码
+// 从 U+XXXX 格式解码（码点可多于 4 位）。
+// 按 token 提取而非 replace：toUnicodeStdFormat 是用空格连接的，
+// 用 replace 会把分隔空格留在结果里（"U+4F60 U+597D" 会解成 "你 好"）。
 function decodeUnicodeStdFormat(input: string): string {
-  return input.replace(/[Uu]\+([0-9a-fA-F]{4})/g, (_, hex) =>
-    String.fromCharCode(parseInt(hex, 16)),
-  );
+  const matches = input.match(/[Uu]\+[0-9a-fA-F]{4,6}/g) ?? [];
+  return matches
+    .map((token) => String.fromCodePoint(parseInt(token.slice(2), 16)))
+    .join("");
 }
 
 // 从十进制格式解码
@@ -90,19 +108,35 @@ function decodeDecimalFormat(input: string): string {
     .trim()
     .split(/\s+/)
     .filter((n) => n && /^\d+$/.test(n));
-  return numbers.map((num) => String.fromCharCode(parseInt(num, 10))).join("");
+  return numbers.map((num) => String.fromCodePoint(parseInt(num, 10))).join("");
 }
 
-// 从十六进制格式解码
+// 从十六进制格式解码。
+// 带空格时按空格切分（这样才支持 emoji 的 5-6 位码点，如 "1F600"）；
+// 不带空格时退回按 4 位一组切分，兼容 "4F60597D" 这种旧写法。
 function decodeHexFormat(input: string): string {
   const trimmed = input.trim();
-  // 移除所有空格然后分成 4 位一组
-  const hexOnly = trimmed.replace(/\s+/g, "");
+
+  if (/\s/.test(trimmed)) {
+    return trimmed
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((hex) => String.fromCodePoint(parseInt(hex, 16)))
+      .join("");
+  }
+
+  // 无空格时有歧义："1F600" 既可能是 4 位分组，也可能是单个 5 位码点。
+  // 长度不能被 4 整除，说明它不是 4 位分组，整体当一个码点处理
+  // （否则 "1F600" 会被切成 "1F60" + 残余 "0"，解出错字 ὠ）。
+  if (trimmed.length % 4 !== 0) {
+    return String.fromCodePoint(parseInt(trimmed, 16));
+  }
+
   const result = [];
-  for (let i = 0; i < hexOnly.length; i += 4) {
-    const hex = hexOnly.slice(i, i + 4);
+  for (let i = 0; i < trimmed.length; i += 4) {
+    const hex = trimmed.slice(i, i + 4);
     if (hex.length === 4) {
-      result.push(String.fromCharCode(parseInt(hex, 16)));
+      result.push(String.fromCodePoint(parseInt(hex, 16)));
     }
   }
   return result.join("");
@@ -112,13 +146,13 @@ function decodeHexFormat(input: string): string {
 export function decodeUnicodeSequence(input: string): string {
   const trimmed = input.trim();
 
-  // 尝试 \uXXXX 格式
-  if (/\\u[0-9a-fA-F]{4}/.test(trimmed)) {
+  // 尝试 \uXXXX 与 \u{XXXXX} 格式
+  if (/\\u(\{[0-9a-fA-F]{1,6}\}|[0-9a-fA-F]{4})/.test(trimmed)) {
     return decodeJSFormat(trimmed);
   }
 
   // 尝试 U+XXXX 格式
-  if (/[Uu]\+[0-9a-fA-F]{4}/.test(trimmed)) {
+  if (/[Uu]\+[0-9a-fA-F]{4,6}/.test(trimmed)) {
     return decodeUnicodeStdFormat(trimmed);
   }
 
@@ -127,9 +161,13 @@ export function decodeUnicodeSequence(input: string): string {
     return decodeDecimalFormat(trimmed);
   }
 
-  // 尝试十六进制格式
-  // 支持：4位一组（4F60 597D 或 4F60597D 都可以）
-  if (/^[0-9a-fA-F]{4}([0-9a-fA-F]{4}|\s+[0-9a-fA-F]{4})*$/.test(trimmed)) {
+  // 尝试十六进制格式。
+  // 空格分隔时每组允许 4-6 位（emoji 码点如 1F600 有 5 位）；
+  // 无空格时仍按 4 位一组，兼容 "4F60597D"。
+  if (
+    /^[0-9a-fA-F]{4,6}(\s+[0-9a-fA-F]{4,6})*$/.test(trimmed) ||
+    /^([0-9a-fA-F]{4})+$/.test(trimmed)
+  ) {
     return decodeHexFormat(trimmed);
   }
 
@@ -138,12 +176,15 @@ export function decodeUnicodeSequence(input: string): string {
 
 // 生成代码点信息
 export function getCodePoints(text: string): CodePoint[] {
-  return [...text].map((char) => ({
-    char,
-    code: char.charCodeAt(0),
-    hex: char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"),
-    decimal: char.charCodeAt(0).toString(),
-  }));
+  return [...text].map((char) => {
+    const cp = codePointOf(char);
+    return {
+      char,
+      code: cp,
+      hex: cp.toString(16).toUpperCase().padStart(4, "0"),
+      decimal: cp.toString(),
+    };
+  });
 }
 
 // 主函数：分析 Unicode
@@ -175,7 +216,8 @@ export function generateMarkdown(analysis: UnicodeAnalysis): string {
 
   let markdown = `## Unicode 转换结果\n\n`;
   markdown += `**原始文本：** ${originalText}\n`;
-  markdown += `**字符数：** ${originalText.length}\n\n`;
+  // 用码点数而非 .length：后者是 UTF-16 长度，emoji 会被算成 2
+  markdown += `**字符数：** ${codePoints.length}\n\n`;
 
   markdown += `### 格式转换\n\n`;
 

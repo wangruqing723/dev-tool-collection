@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { success, failure } from "./utils/result";
 
 type CharacterSet =
@@ -40,9 +41,11 @@ export default async function Command(props: {
         break;
     }
 
+    // 用 crypto.randomInt 而非 Math.random：后者非加密安全，
+    // 且 randomInt 本身是无模偏的均匀取值。
     let result = "";
     for (let i = 0; i < len; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+      result += chars.charAt(crypto.randomInt(chars.length));
     }
 
     await success(result, { title: "随机字符串已生成", hud: true });

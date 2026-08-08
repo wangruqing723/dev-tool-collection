@@ -23,15 +23,20 @@ export default function Command() {
         throw new Error("请输入明文");
       }
 
-      if (values.mode === "hash") {
+      const plainText = values.text.trim();
+
+      // 用受控 Dropdown 的 state 而非 values.mode：后者在受控场景下不一定拿到预期值。
+      // 原实现这里判断 values.mode，与 bcrypt.tsx 的行为不一致。
+      if (mode === "hash") {
+        // 上限原为 31，即允许 2^31 轮，会直接把命令卡死；收紧到 15（约 2 秒量级）。
         const saltRounds = ensureNumberInRange(
           Number(values.salt || 12),
           4,
-          31,
+          15,
           "Salt 位数",
         );
 
-        const hash = await bcrypt.hash(values.text, saltRounds);
+        const hash = await bcrypt.hash(plainText, saltRounds);
 
         await success(hash, { title: "加密成功" });
         return;
@@ -41,7 +46,7 @@ export default function Command() {
         throw new Error("请输入待校验的 Hash");
       }
 
-      const ok = await bcrypt.compare(values.text, values.hash);
+      const ok = await bcrypt.compare(plainText, values.hash.trim());
       if (ok) {
         await success("校验一致", { title: "校验成功", copy: false });
       } else {

@@ -25,10 +25,11 @@ export default function Command() {
       const plainText = values.text.trim();
 
       if (mode === "hash") {
+        // 上限原为 31，即允许 2^31 轮，会直接把命令卡死；收紧到 15（约 2 秒量级）。
         const saltRounds = ensureNumberInRange(
           Number(values.salt || 12),
           4,
-          31,
+          15,
           "Salt 位数",
         );
 
