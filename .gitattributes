@@ -1,0 +1,8 @@
+# Windows 上 git 默认 core.autocrlf=true 会把签出的文件转成 CRLF，
+# 而 Raycast 的 prettier/eslint 规则要求 LF，会导致 ray lint 全文件报错。
+# 这里强制工作区行尾为 LF，与 macOS 保持一致。
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.icns binary
