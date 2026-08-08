@@ -1,8 +1,8 @@
 // src/jwt-form.tsx
-import { ActionPanel, Action, Detail, Form } from "@raycast/api";
+import { ActionPanel, Action, Detail, Form, useNavigation } from "@raycast/api";
 import { useState } from "react";
 import crypto from "crypto";
-import { success, failure } from "./utils/result";
+import { success, failure, normalizeNewlines } from "./utils/result";
 
 type Mode = "parse" | "generate";
 
@@ -69,22 +69,25 @@ function signHS256(header: unknown, payload: unknown, secret: string) {
   return `${data}.${sig}`;
 }
 
+// 独立的结果视图，通过 push 进入。
+// 原先在同一组件里把根视图从 Form 换成 Detail，Windows 上会导致窗口被关掉。
+function JwtDetail({ markdown }: { markdown: string }) {
+  return (
+    <Detail
+      markdown={markdown}
+      actions={
+        <ActionPanel>
+          {/* 多行 markdown，Windows 上纯 LF 粘贴到部分程序会挤成一行 */}
+          <Action.CopyToClipboard content={normalizeNewlines(markdown)} />
+        </ActionPanel>
+      }
+    />
+  );
+}
+
 export default function Command() {
   const [mode, setMode] = useState<Mode>("parse");
-  const [detail, setDetail] = useState<string | null>(null);
-
-  if (detail) {
-    return (
-      <Detail
-        markdown={detail}
-        actions={
-          <ActionPanel>
-            <Action.CopyToClipboard content={detail} />
-          </ActionPanel>
-        }
-      />
-    );
-  }
+  const { push } = useNavigation();
 
   async function onSubmit(values: {
     token?: string;
@@ -119,7 +122,7 @@ ${payloadStr}
 ${parts[2]}
 \`\`\`
 `;
-        setDetail(markdown);
+        push(<JwtDetail markdown={markdown} />);
         return;
       }
 
@@ -130,7 +133,9 @@ ${parts[2]}
       const header = { alg: "HS256", typ: "JWT" };
       const token = signHS256(header, payload, secret);
 
-      setDetail(`## JWT Generated\n\`\`\`\n${token}\n\`\`\``);
+      push(
+        <JwtDetail markdown={`## JWT Generated\n\`\`\`\n${token}\n\`\`\``} />,
+      );
 
       await success(token, { title: "JWT Generated 成功并已复制到剪贴板" });
     } catch (err: unknown) {

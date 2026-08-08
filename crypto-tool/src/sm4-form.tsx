@@ -2,6 +2,7 @@ import {
   Form,
   ActionPanel,
   Action,
+  Icon,
   LocalStorage,
   confirmAlert,
   Alert,
@@ -153,7 +154,9 @@ export default function SM4FormCommand() {
           {keySelect !== "__manual__" && (
             <Action
               title="删除当前密钥"
-              icon="🗑"
+              // 原本用 emoji "🗑"：Windows 走 Segoe UI Emoji，字形与 macOS 不一致。
+              // 换成内置 Icon，由 Raycast 按平台渲染。
+              icon={Icon.Trash}
               style={Action.Style.Destructive}
               onAction={async () => {
                 const confirmed = await confirmAlert({
@@ -251,8 +254,9 @@ export default function SM4FormCommand() {
       >
         <Form.Dropdown.Item value="hex" title="Hex" />
         <Form.Dropdown.Item value="base64" title="Base64" />
+        {/* 下面的 UTF-8 原本用 U+2011 非断字连字符，部分 Windows 字体缺该字形会显示豆腐块 */}
         {action === "decrypt" && (
-          <Form.Dropdown.Item value="utf8" title="UTF‑8（文本）" />
+          <Form.Dropdown.Item value="utf8" title="UTF-8（文本）" />
         )}
       </Form.Dropdown>
     </Form>
