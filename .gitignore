@@ -23,6 +23,8 @@ npm-debug.log*
 .env.local
 .env.*.local
 
+.codegraph/
+
 # 说明：package-lock.json 与 raycast-env.d.ts 必须入库，不要忽略。
 # - package-lock.json：依赖全是 ^ 范围，不锁版本会让 Windows 机器 npm install
 #   解析出与 macOS 不同的传递依赖版本。
