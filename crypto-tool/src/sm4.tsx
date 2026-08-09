@@ -129,12 +129,15 @@ export default function Command() {
         result = SM4.decrypt(text, key, opts as any);
       }
 
-      await success(result, {
-        title: `${action === "encrypt" ? "加密" : "解密"}成功`,
-      });
-
+      // 密钥历史要在关窗前写完，否则 showHUD 关窗后这两步可能来不及执行
       await addKeyToHistory(key);
       setKeyHistory(await loadKeyHistory());
+
+      // 复制 + 关窗 + HUD：showHUD 本身会关闭主窗口
+      await success(result, {
+        title: `${action === "encrypt" ? "加密" : "解密"}成功`,
+        hud: true,
+      });
     } catch (err) {
       await failure(err, `${action === "encrypt" ? "加密" : "解密"}失败`);
     }

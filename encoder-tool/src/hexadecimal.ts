@@ -1,12 +1,12 @@
 import { success, failure } from "./utils/result";
+import { getInputText } from "./utils/input";
 
 export default async function Command(props: { arguments: { text?: string } }) {
   try {
-    const text = props.arguments.text;
-
-    if (!text?.trim()) {
-      throw new Error("请输入文本");
-    }
+    // 参数留空时自动取剪贴板内容。
+    // no-view 命令的参数在命令启动前就已输入完毕，扩展代码那时还没执行，
+    // 所以无法「预填」输入框，只能在这里兜底读取。
+    const text = await getInputText(props.arguments.text);
 
     const trimmedText = text.trim();
     let result = "";
@@ -20,7 +20,8 @@ export default async function Command(props: { arguments: { text?: string } }) {
       result = Buffer.from(trimmedText, "utf8").toString("hex");
     }
 
-    await success(result, { title: "十六进制转换成功" });
+    // 复制 + 关窗 + HUD：showHUD 本身会关闭主窗口
+    await success(result, { title: "十六进制转换成功", hud: true });
   } catch (err) {
     await failure(err, "十六进制转换失败");
   }

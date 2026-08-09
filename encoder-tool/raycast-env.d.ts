@@ -26,14 +26,14 @@ declare namespace Preferences {
 declare namespace Arguments {
   /** Arguments passed to the `base64` command */
   export type Base64 = {
-  /** 输入要转换的文本 */
+  /** 留空则用剪贴板 */
   "text": string,
-  /** encode/decode/auto */
-  "operation": string
+  /** 默认自动检测 */
+  "operation": "auto" | "encode" | "decode"
 }
   /** Arguments passed to the `hexadecimal` command */
   export type Hexadecimal = {
-  /** 输入要转换的文本 */
+  /** 留空则用剪贴板 */
   "text": string
 }
   /** Arguments passed to the `unicode-form` command */

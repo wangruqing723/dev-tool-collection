@@ -26,17 +26,30 @@
             "arguments": [
                 {
                     "name": "text",
-                    "description": "要转换的文本",
+                    "description": "要转换的文本。留空则自动使用剪贴板内容",
                     "type": "text",
-                    "placeholder": "输入要转换的文本",
-                    "required": true
+                    "placeholder": "留空则用剪贴板",
+                    "optional": true
                 },
                 {
                     "name": "operation",
-                    "description": "操作类型（encode/decode/auto，默认auto自动检测）",
-                    "type": "text",
-                    "placeholder": "encode/decode/auto",
-                    "required": false
+                    "type": "dropdown",
+                    "placeholder": "默认自动检测",
+                    "optional": true,
+                    "data": [
+                        {
+                            "title": "自动检测",
+                            "value": "auto"
+                        },
+                        {
+                            "title": "编码（文本 → Base64）",
+                            "value": "encode"
+                        },
+                        {
+                            "title": "解码（Base64 → 文本）",
+                            "value": "decode"
+                        }
+                    ]
                 }
             ]
         },
@@ -49,10 +62,10 @@
             "arguments": [
                 {
                     "name": "text",
-                    "description": "要转换的文本",
+                    "description": "要转换的文本。留空则自动使用剪贴板内容",
                     "type": "text",
-                    "placeholder": "输入要转换的文本",
-                    "required": true
+                    "placeholder": "留空则用剪贴板",
+                    "optional": true
                 }
             ]
         },

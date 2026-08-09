@@ -97,37 +97,17 @@
             "arguments": [
                 {
                     "name": "length",
+                    "description": "生成长度，1-1000，留空默认 16",
                     "type": "text",
-                    "placeholder": "长度（默认16）",
+                    "placeholder": "16",
                     "optional": true
                 },
                 {
                     "name": "charset",
-                    "type": "dropdown",
-                    "placeholder": "字符集",
-                    "optional": true,
-                    "data": [
-                        {
-                            "title": "字母 + 数字",
-                            "value": "alphanumeric"
-                        },
-                        {
-                            "title": "小写字母",
-                            "value": "lowercase"
-                        },
-                        {
-                            "title": "大写字母",
-                            "value": "uppercase"
-                        },
-                        {
-                            "title": "数字",
-                            "value": "numbers"
-                        },
-                        {
-                            "title": "符号",
-                            "value": "symbols"
-                        }
-                    ]
+                    "description": "字符集组合：l=小写字母  u=大写字母  d=数字  s=符号。可任意组合，顺序无关，留空默认 lud（小写+大写+数字）。例：ld=小写+数字，luds=全部",
+                    "type": "text",
+                    "placeholder": "l小写 u大写 d数字 s符号",
+                    "optional": true
                 }
             ]
         }

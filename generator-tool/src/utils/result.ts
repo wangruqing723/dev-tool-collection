@@ -5,13 +5,8 @@ type SuccessOptions = {
   title?: string;
   message?: string;
   copy?: boolean; // 是否自动复制
-  hud?: boolean; // 是否显示 HUD（仅 macOS，其他平台自动降级为 Toast）
+  hud?: boolean; // true = 关闭主窗口并显示 HUD；不可用时降级为 Toast
 };
-
-// showHUD 仅 macOS 可用。Windows 上它可能抛错，也可能静默无反应，
-// 光靠 try/catch 兜不住「静默无反应」的情况（用户会完全收不到反馈），
-// 所以先按平台判断，再用 try/catch 兜住抛错的情况。
-const SUPPORTS_HUD = process.platform === "darwin";
 
 // Windows 的部分程序不接受纯 LF，多行文本粘贴过去会挤成一行，
 // 因此写入剪贴板前按平台转换行尾。
@@ -34,13 +29,19 @@ export async function success(result: string, options: SuccessOptions = {}) {
     await Clipboard.copy(normalizeNewlines(result));
   }
 
-  if (hud && SUPPORTS_HUD) {
+  // showHUD 会自动关闭主窗口，所以「关窗 + HUD」一次调用即可。
+  //
+  // 这里不再按 process.platform 预先拦掉非 macOS：官方文档会显式标注
+  // 平台限制的 API（例如 BrowserExtension.getTabs 明确标注不支持 Windows），
+  // 而 showHUD 并未被这样标注，原代码注释里「仅 macOS」的说法缺乏依据。
+  // 两个平台都尝试，真的不可用再降级。
+  if (hud) {
     try {
-      // 原实现这里误用了 options.title（未取默认值），未传 title 时会显示 "undefined"
-      await showHUD(`${title}  ${result}`);
+      await showHUD(title === "成功" ? result : `${title}  ${result}`);
       return;
     } catch {
-      // 落到下面的 Toast
+      // 降级为 Toast：此时窗口仍开着，但用户至少能看到反馈。
+      // 反过来（先关窗再 Toast）会导致提示不可见，宁可不关窗。
     }
   }
 

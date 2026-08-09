@@ -35,7 +35,8 @@ export default function Command() {
 
         const hash = await bcrypt.hash(plainText, saltRounds);
 
-        await success(hash, { title: "加密成功" });
+        // 复制 + 关窗 + HUD：showHUD 本身会关闭主窗口
+        await success(hash, { title: "加密成功", hud: true });
         return;
       }
 
@@ -46,8 +47,14 @@ export default function Command() {
       const hashValue = values.hash.trim();
       const ok = await bcrypt.compare(plainText, hashValue);
       if (ok) {
-        await success("校验一致", { title: "校验成功", copy: false });
+        // 校验通过没有值可复制，但同样关窗 + HUD
+        await success("校验一致", {
+          title: "校验成功",
+          copy: false,
+          hud: true,
+        });
       } else {
+        // 不通过时保持窗口打开，方便改输入重试
         await failure("校验不通过", "校验结果");
       }
     } catch (err) {

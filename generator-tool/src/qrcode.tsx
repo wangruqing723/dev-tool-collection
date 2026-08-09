@@ -1,100 +1,42 @@
-import {
-  Form,
-  ActionPanel,
-  Action,
-  Detail,
-  environment,
-  useNavigation,
-} from "@raycast/api";
+import { Form, ActionPanel, Action, Detail, useNavigation } from "@raycast/api";
 import { useState } from "react";
-import crypto from "crypto";
-import fs from "fs/promises";
-import path from "path";
 import QRCode from "qrcode";
 import { success, failure } from "./utils/result";
 
 type QRMode = "generate" | "parse";
 
-const QR_PREFIX = "qr-";
-const KEEP_FILES = 20;
+function QRCodeDetail({ dataUri, text }: { dataUri: string; text: string }) {
+  // 用引用式 markdown 语法内嵌 base64 data URI：
+  //
+  //   ![alt][ref]
+  //   [ref]: <data:image/png;base64,...>
+  //
+  // 之前是把 PNG 落盘再用绝对路径引用，但 macOS 的 supportPath 含空格
+  // （~/Library/Application Support/...），markdown 图片 URL 里的未转义空格
+  // 会让语法解析失败，整行退化成字面文本（就是之前看到的现象）。
+  // data URI 同时免掉了落盘、目录清理和 Windows 路径渲染这三处麻烦。
+  // 尖括号包裹是必要的，否则 data URI 里的特殊字符同样会破坏解析。
+  const markdown = `![QR Code][qr]\n\n[qr]: <${dataUri}>`;
 
-// 本地生成二维码并写入扩展的 support 目录。
-//
-// 原实现把用户输入拼进 https://api.qrserver.com/... 发给第三方服务：
-// 离线不可用，企业网络的代理/防火墙下也可能失败，且输入内容会外发。
-// 改为用 qrcode 包本地生成（纯 JS，无原生模块）。
-//
-// Detail 的 markdown 支持绝对本地路径引用图片，但没有文档说明支持
-// data URI，所以这里落盘再引用。路径用 path.join 拼接以兼容 Windows。
-async function renderToFile(text: string): Promise<string> {
-  // 用内容 hash 做文件名：相同输入复用同一文件，不重复写；
-  // 不同输入得到不同路径，避免 Raycast 的图片缓存返回上一张图。
-  const hash = crypto
-    .createHash("sha256")
-    .update(text)
-    .digest("hex")
-    .slice(0, 16);
-  const filePath = path.join(
-    environment.supportPath,
-    `${QR_PREFIX}${hash}.png`,
-  );
-
-  // supportPath 由 Raycast 创建，但首次运行时不保证已存在
-  await fs.mkdir(environment.supportPath, { recursive: true });
-
-  await QRCode.toFile(filePath, text, {
-    width: 512,
-    margin: 2,
-    errorCorrectionLevel: "M",
-  });
-
-  await pruneOldFiles();
-  return filePath;
-}
-
-// 只保留最近的若干张，避免 support 目录随不同输入无限增长
-async function pruneOldFiles() {
-  try {
-    const entries = await fs.readdir(environment.supportPath);
-    const qrFiles = entries.filter(
-      (name) => name.startsWith(QR_PREFIX) && name.endsWith(".png"),
-    );
-    if (qrFiles.length <= KEEP_FILES) return;
-
-    const withTime = await Promise.all(
-      qrFiles.map(async (name) => {
-        const full = path.join(environment.supportPath, name);
-        const stat = await fs.stat(full);
-        return { full, mtime: stat.mtimeMs };
-      }),
-    );
-
-    withTime.sort((a, b) => b.mtime - a.mtime);
-    await Promise.all(
-      withTime.slice(KEEP_FILES).map((f) => fs.rm(f.full, { force: true })),
-    );
-  } catch {
-    // 清理失败不影响主流程
-  }
-}
-
-function QRCodeDetail({ filePath, text }: { filePath: string; text: string }) {
   return (
     <Detail
-      markdown={`# 二维码\n\n![QR Code](${filePath}?raycast-width=300&raycast-height=300)`}
+      navigationTitle="二维码"
+      markdown={markdown}
       actions={
         <ActionPanel>
           <Action.CopyToClipboard content={text} title="复制原文" />
-          <Action.ShowInFinder path={filePath} title="在文件管理器中显示" />
         </ActionPanel>
       }
       metadata={
         <Detail.Metadata>
           <Detail.Metadata.Label
             title="内容长度"
-            text={`${text.length} 字符`}
+            text={`${[...text].length} 字符`}
           />
-          <Detail.Metadata.Label title="图片路径" text={filePath} />
+          <Detail.Metadata.Label
+            title="内容"
+            text={text.length > 60 ? text.slice(0, 60) + "…" : text}
+          />
         </Detail.Metadata>
       }
     />
@@ -116,9 +58,17 @@ export default function QRCodeCommand() {
       }
 
       const text = values.text.trim();
-      const filePath = await renderToFile(text);
 
-      push(<QRCodeDetail filePath={filePath} text={text} />);
+      // 本地生成，不经第三方服务
+      // Detail 的 markdown 按图片原始尺寸渲染，不会自动缩放到面板宽度，
+      // 所以尺寸由这里的 width 决定。400 会溢出到需要滚动，250 偏小。
+      const dataUri = await QRCode.toDataURL(text, {
+        width: 350,
+        margin: 2,
+        errorCorrectionLevel: "M",
+      });
+
+      push(<QRCodeDetail dataUri={dataUri} text={text} />);
       await success(text, { title: "二维码已生成", copy: false });
     } catch (err) {
       await failure(err, "操作失败");

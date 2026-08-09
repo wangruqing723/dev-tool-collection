@@ -5,6 +5,7 @@ import {
   detectInputType,
   decodeUnicodeSequence,
 } from "./utils/unicode";
+import { useClipboardPrefill } from "./hooks/useClipboardPrefill";
 
 export default function UnicodeCommand() {
   const [searchText, setSearchText] = useState("");
@@ -45,6 +46,16 @@ export default function UnicodeCommand() {
     }
   }, [searchText]);
 
+  useClipboardPrefill(setSearchText);
+
+  // 三个分支的 List 都要传受控的 searchText，否则预填后输入框显示不出内容
+  const searchProps = {
+    searchBarPlaceholder: "输入文本或 Unicode 编码（已自动填入剪贴板内容）",
+    searchText,
+    onSearchTextChange: setSearchText,
+    filtering: false,
+  };
+
   // 编码模式：显示中文对应的三种编码格式
   if (result?.mode === "encode" && result.analysis) {
     const { originalText, hex, javascript, unicode } = result.analysis;
@@ -55,11 +66,7 @@ export default function UnicodeCommand() {
     ];
 
     return (
-      <List
-        searchBarPlaceholder="Enter text or Unicode code..."
-        onSearchTextChange={setSearchText}
-        filtering={false}
-      >
+      <List {...searchProps}>
         <List.Section title={`Encode: ${originalText}`}>
           {formats.map((fmt) => (
             <List.Item
@@ -81,11 +88,7 @@ export default function UnicodeCommand() {
   // 解码模式：显示 Unicode 编码翻译的中文
   if (result?.mode === "decode" && result.decodedText) {
     return (
-      <List
-        searchBarPlaceholder="Enter text or Unicode code..."
-        onSearchTextChange={setSearchText}
-        filtering={false}
-      >
+      <List {...searchProps}>
         <List.Section title={`Decode: ${result.decodedText}`}>
           <List.Item
             title={result.decodedText}
@@ -105,11 +108,5 @@ export default function UnicodeCommand() {
   }
 
   // 搜索框为空
-  return (
-    <List
-      searchBarPlaceholder="Enter text or Unicode code..."
-      onSearchTextChange={setSearchText}
-      filtering={false}
-    />
-  );
+  return <List {...searchProps} />;
 }

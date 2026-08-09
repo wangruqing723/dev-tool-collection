@@ -1,5 +1,6 @@
 import { List, ActionPanel, Action } from "@raycast/api";
 import { useState, useEffect } from "react";
+import { useClipboardPrefill } from "./hooks/useClipboardPrefill";
 
 interface TimeConversion {
   label: string;
@@ -105,9 +106,12 @@ export default function TimeConvertCommand() {
     setConversions(results);
   }, [searchText]);
 
+  useClipboardPrefill(setSearchText);
+
   return (
     <List
-      searchBarPlaceholder="输入时间戳或日期时间..."
+      searchBarPlaceholder="输入时间戳或日期时间（已自动填入剪贴板内容）"
+      searchText={searchText}
       onSearchTextChange={setSearchText}
       filtering={false}
     >

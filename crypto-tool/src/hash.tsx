@@ -1,7 +1,8 @@
 import { Form, ActionPanel, Action, List, useNavigation } from "@raycast/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import crypto from "crypto";
 import { SM3 } from "gm-crypto";
+import { useClipboardPrefill } from "./hooks/useClipboardPrefill";
 
 type HashAlgorithm = "md5" | "sha1" | "sha256" | "sha512" | "sm3";
 
@@ -52,80 +53,71 @@ function SaltForm({
   );
 }
 
+// 提到模块作用域：不依赖任何组件状态，这样它是稳定引用，
+// 可以直接进 effect 的依赖数组而不必用 eslint 抑制注释
+function generateHashes(text: string, saltValue: string): HashResult[] {
+  const algorithms: HashAlgorithm[] = [
+    "md5",
+    "sha1",
+    "sha256",
+    "sha512",
+    "sm3",
+  ];
+  const hashes: HashResult[] = [];
+
+  algorithms.forEach((alg) => {
+    try {
+      const input = saltValue ? text + saltValue : text;
+      let hash: string;
+
+      if (alg === "sm3") {
+        const result = SM3.digest(input);
+        hash =
+          typeof result === "string"
+            ? result
+            : Buffer.from(result).toString("hex");
+      } else {
+        hash = crypto.createHash(alg).update(input).digest("hex");
+      }
+
+      hashes.push({ algorithm: alg, value: hash });
+    } catch (err) {
+      console.error(`Error generating ${alg}:`, err);
+      hashes.push({
+        algorithm: alg,
+        value: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      });
+    }
+  });
+
+  return hashes;
+}
+
 export default function Command() {
   const [searchText, setSearchText] = useState("");
   const [salt, setSalt] = useState("");
   const [results, setResults] = useState<HashResult[]>([]);
   const { push } = useNavigation();
 
-  function generateHashes(text: string, saltValue: string): HashResult[] {
-    const algorithms: HashAlgorithm[] = [
-      "md5",
-      "sha1",
-      "sha256",
-      "sha512",
-      "sm3",
-    ];
-    const hashes: HashResult[] = [];
+  // 在 effect 里按 searchText/salt 重算，而不是只在 onChange 回调里算：
+  // 剪贴板预填是直接 setSearchText 的，不走 onChange，
+  // 若把计算留在回调里，预填后不会出结果。
+  useEffect(() => {
+    setResults(searchText.trim() ? generateHashes(searchText, salt) : []);
+  }, [searchText, salt]);
 
-    algorithms.forEach((alg) => {
-      try {
-        let hash: string;
-
-        if (alg === "sm3") {
-          const input = saltValue ? text + saltValue : text;
-          const result = SM3.digest(input);
-          hash =
-            typeof result === "string"
-              ? result
-              : Buffer.from(result).toString("hex");
-        } else {
-          const input = saltValue ? text + saltValue : text;
-          hash = crypto.createHash(alg).update(input).digest("hex");
-        }
-
-        hashes.push({
-          algorithm: alg,
-          value: hash,
-        });
-      } catch (err) {
-        console.error(`Error generating ${alg}:`, err);
-        hashes.push({
-          algorithm: alg,
-          value: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
-        });
-      }
-    });
-
-    return hashes;
-  }
-
-  function handleSearchChange(text: string) {
-    setSearchText(text);
-    if (text.trim()) {
-      const hashes = generateHashes(text, salt);
-      setResults(hashes);
-    } else {
-      setResults([]);
-    }
-  }
-
-  function handleSaltChange(newSalt: string) {
-    setSalt(newSalt);
-    if (searchText.trim()) {
-      const hashes = generateHashes(searchText, newSalt);
-      setResults(hashes);
-    }
-  }
+  useClipboardPrefill(setSearchText);
 
   function openSaltForm() {
-    push(<SaltForm initialSalt={salt} onChange={handleSaltChange} />);
+    // 只 setSalt，重算交给上面的 effect
+    push(<SaltForm initialSalt={salt} onChange={setSalt} />);
   }
 
   return (
     <List
-      searchBarPlaceholder="输入待 Hash 的文本..."
-      onSearchTextChange={handleSearchChange}
+      searchBarPlaceholder="输入待 Hash 的文本（已自动填入剪贴板内容）"
+      searchText={searchText}
+      onSearchTextChange={setSearchText}
       filtering={false}
     >
       {results.length > 0 && (

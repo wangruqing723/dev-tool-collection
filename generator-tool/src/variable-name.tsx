@@ -1,5 +1,6 @@
 import { List, ActionPanel, Action } from "@raycast/api";
 import { useState, useEffect } from "react";
+import { useClipboardPrefill } from "./hooks/useClipboardPrefill";
 
 interface NameConversion {
   style: string;
@@ -69,9 +70,12 @@ export default function VariableNameCommand() {
     setConversions(results);
   }, [searchText]);
 
+  useClipboardPrefill(setSearchText);
+
   return (
     <List
-      searchBarPlaceholder="输入变量名..."
+      searchBarPlaceholder="输入变量名（已自动填入剪贴板内容）"
+      searchText={searchText}
       onSearchTextChange={setSearchText}
       filtering={false}
     >

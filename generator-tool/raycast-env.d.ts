@@ -39,10 +39,10 @@ declare namespace Arguments {
   export type VariableName = {}
   /** Arguments passed to the `random-string` command */
   export type RandomString = {
-  /** 长度（默认16） */
+  /** 16 */
   "length": string,
-  /** 字符集 */
-  "charset": "alphanumeric" | "lowercase" | "uppercase" | "numbers" | "symbols"
+  /** l小写 u大写 d数字 s符号 */
+  "charset": string
 }
 }
 
