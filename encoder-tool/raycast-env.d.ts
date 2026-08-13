@@ -19,6 +19,8 @@ declare namespace Preferences {
   export type Hexadecimal = ExtensionPreferences & {}
   /** Preferences accessible in the `unicode-form` command */
   export type UnicodeForm = ExtensionPreferences & {}
+  /** Preferences accessible in the `url-encoding` command */
+  export type UrlEncoding = ExtensionPreferences & {}
   /** Preferences accessible in the `time-convert` command */
   export type TimeConvert = ExtensionPreferences & {}
 }
@@ -38,6 +40,8 @@ declare namespace Arguments {
 }
   /** Arguments passed to the `unicode-form` command */
   export type UnicodeForm = {}
+  /** Arguments passed to the `url-encoding` command */
+  export type UrlEncoding = {}
   /** Arguments passed to the `time-convert` command */
   export type TimeConvert = {}
 }

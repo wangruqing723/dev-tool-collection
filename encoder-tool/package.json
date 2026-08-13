@@ -3,7 +3,7 @@
     "name": "encoder-tool",
     "version": "1.0.0",
     "title": "Encoder-Tool",
-    "description": "编解码工具（Base64、Unicode、Hexadecimal、时间转换）",
+    "description": "编解码工具（Base64、Unicode、URL、Hexadecimal、时间转换）",
     "icon": "extension-icon.png",
     "author": "ruqing_wang",
     "owner": "ruqingwang-encoder-tool",
@@ -74,6 +74,13 @@
             "title": "Unicode",
             "subtitle": "Unicode 编码转换",
             "description": "Unicode 编码转换工具，支持多种格式展示（JavaScript、Unicode 标准、十进制、十六进制等）",
+            "mode": "view"
+        },
+        {
+            "name": "url-encoding",
+            "title": "URL Encode/Decode",
+            "subtitle": "URL 自动编码/解码",
+            "description": "URL 自动编码和解码工具，支持 URL 组件、完整 URL 和表单三种语义",
             "mode": "view"
         },
         {
