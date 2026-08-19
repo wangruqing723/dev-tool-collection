@@ -25,6 +25,10 @@ npm-debug.log*
 
 .codegraph/
 
+# Claude Code：仅提交项目指令 CLAUDE.md，其余（settings.local.json 等本地文件）忽略
+.claude/*
+!.claude/CLAUDE.md
+
 # 说明：package-lock.json 与 raycast-env.d.ts 必须入库，不要忽略。
 # - package-lock.json：依赖全是 ^ 范围，不锁版本会让 Windows 机器 npm install
 #   解析出与 macOS 不同的传递依赖版本。
