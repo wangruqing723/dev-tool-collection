@@ -6,7 +6,7 @@
     "description": "加解密工具（SM4、AES、RSA）",
     "icon": "extension-icon.png",
     "author": "ruqing_wang",
-    "owner": "ruqingwang-crypto-advanced",
+    "owner": "ruqingwang-crypto-adv",
     "access": "private",
     "categories": [
         "Developer Tools"
