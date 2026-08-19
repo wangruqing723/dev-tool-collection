@@ -2,27 +2,44 @@
 
 ## 📦 项目概述
 
-原 `dev-tool` 项目已成功拆分为三个独立的 Raycast 扩展项目，每个项目专注于特定的功能领域。
+原 `dev-tool` 项目已拆分为多个独立的 Raycast 扩展项目，每个项目专注于特定的功能领域。
 
-## 🎯 三个新项目
+加密类命令按**算法是否可逆**划分归属：可逆加解密归 `crypto-advanced`，单向摘要与令牌归 `crypto-tool`。判据详见 [ADR-0001](./docs/adr/0001-crypto-extension-boundary.md)，术语见 [CONTEXT.md](./CONTEXT.md)。
 
-### 1️⃣ **Crypto-Tool** (加密工具)
+## 🎯 项目清单
+
+### 1️⃣ **Crypto-Tool** (单向摘要与令牌)
 位置: `./crypto-tool`
 
 **功能**:
 - **Hash 生成**: MD5、SHA-1、SHA-256、SHA-512、SM3 (支持加盐)
-- **SM4 加密**: ECB/CBC 模式，支持 Hex/Base64/UTF-8 格式
 - **Bcrypt**: 密码哈希和验证
 - **JWT**: 解析和生成
 
 **特色**:
 - Hash 命令以列表形式显示所有算法的结果
 - 支持加盐值
-- SM4 密钥历史记录
 
 ---
 
-### 2️⃣ **Encoder-Tool** (编解码工具)
+### 2️⃣ **Crypto-Advanced** (加解密工具)
+位置: `./crypto-advanced`
+
+**功能**:
+- **SM4 加密**: ECB/CBC 模式，支持 Hex/Base64/UTF-8 格式
+- **AES 加密**: CBC/GCM/ECB 模式，密钥长度自动推定 (AES-128/192/256)
+- **RSA**: 加解密、签名验签、生成密钥对
+
+**特色**:
+- SM4 / AES 密钥历史记录（各自独立，RSA 私钥永不记录）
+- AES 自动生成 IV/Nonce 并打包进密文，实时回显密钥推定结果
+- RSA 支持粘贴 PEM 或选择密钥文件
+
+**已知约束**: RSA 的 PKCS#1 v1.5 填充只在加密方向可用——Node 已禁用其私钥解密 (CVE-2023-46809)，详见 [ADR-0004](./docs/adr/0004-rsa-defaults-and-scope.md)。
+
+---
+
+### 3️⃣ **Encoder-Tool** (编解码工具)
 位置: `./encoder-tool`
 
 **功能**:
@@ -37,7 +54,7 @@
 
 ---
 
-### 3️⃣ **Generator-Tool** (字符生成工具)
+### 4️⃣ **Generator-Tool** (字符生成工具)
 位置: `./generator-tool`
 
 **功能**:
@@ -99,7 +116,15 @@ npm run publish
 | 命令 | 功能 | 模式 |
 |------|------|------|
 | `hash` | Hash 生成 (MD5/SHA-1/SHA-256/SHA-512/SM3) | view |
-| `crypto-tool` | SM4/Bcrypt/JWT 工具 | view |
+| `bcrypt` | 密码哈希和验证 | view |
+| `jwt` | JWT 解析和生成 | view |
+
+### Crypto-Advanced
+| 命令 | 功能 | 模式 |
+|------|------|------|
+| `sm4` | SM4 加密/解密 (ECB/CBC) | view |
+| `aes` | AES 加密/解密 (CBC/GCM/ECB) | view |
+| `rsa` | RSA 加解密 / 签名验签 / 生成密钥对 | view |
 
 ### Encoder-Tool
 | 命令 | 功能 | 模式 |
@@ -130,6 +155,7 @@ npm run publish
 | 项目 | 依赖 |
 |------|------|
 | crypto-tool | bcryptjs, gm-crypto |
+| crypto-advanced | gm-crypto（AES / RSA 走 Node 内置 crypto，无额外依赖） |
 | encoder-tool | 无额外依赖 |
 | generator-tool | 无额外依赖 |
 
@@ -142,13 +168,20 @@ npm run publish
 ├── crypto-tool/
 │   ├── src/
 │   │   ├── hash.tsx              # Hash 命令
-│   │   ├── crypto-tool.tsx       # 加密工具主界面
-│   │   ├── bcrypt-form.tsx       # Bcrypt 表单
-│   │   ├── jwt-form.tsx          # JWT 表单
-│   │   ├── sm4-form.tsx          # SM4 表单
+│   │   ├── bcrypt.tsx            # Bcrypt 命令
+│   │   ├── jwt.tsx               # JWT 命令
 │   │   ├── utils/                # 共享工具函数
-│   │   ├── types/                # TypeScript 类型
 │   │   └── hooks/                # React hooks
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── crypto-advanced/
+│   ├── src/
+│   │   ├── sm4.tsx               # SM4 命令
+│   │   ├── aes.tsx               # AES 命令
+│   │   ├── rsa.tsx               # RSA 命令
+│   │   ├── utils/                # 加解密纯逻辑 + 单测
+│   │   └── types/                # TypeScript 类型
 │   ├── package.json
 │   └── tsconfig.json
 │

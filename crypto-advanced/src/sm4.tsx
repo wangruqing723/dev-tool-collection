@@ -3,16 +3,21 @@ import {
   ActionPanel,
   Action,
   Icon,
-  LocalStorage,
   confirmAlert,
   Alert,
 } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { SM4 } from "gm-crypto";
 import { success, failure } from "./utils/result";
+import { detectEncoding, maskKey } from "./utils/encoding";
+import {
+  loadKeyHistory,
+  addKeyToHistory,
+  deleteKey,
+  MANUAL_KEY,
+} from "./utils/keyHistory";
 import type { SM4EncryptOptions } from "./types/sm4";
 
-type Sm4KeyHistory = { value: string; lastUsedAt: number };
 type SM4FormValues = {
   text?: string;
   iv?: string;
@@ -20,67 +25,16 @@ type SM4FormValues = {
 };
 
 const KEY_HISTORY_STORAGE = "sm4-key-history";
-const MANUAL_KEY = "__manual__";
-
-async function loadKeyHistory(): Promise<Sm4KeyHistory[]> {
-  const raw = await LocalStorage.getItem<string>(KEY_HISTORY_STORAGE);
-  return raw ? JSON.parse(raw) : [];
-}
-
-async function saveKeyHistory(list: Sm4KeyHistory[]) {
-  await LocalStorage.setItem(KEY_HISTORY_STORAGE, JSON.stringify(list));
-}
-
-async function addKeyToHistory(key: string) {
-  const list = await loadKeyHistory();
-
-  const filtered = list.filter((k) => k.value !== key);
-  filtered.unshift({ value: key, lastUsedAt: Date.now() });
-
-  await saveKeyHistory(filtered.slice(0, 10)); // 最多保留 10 个
-}
-
-async function deleteKey(key: string) {
-  const list = await loadKeyHistory();
-  await saveKeyHistory(list.filter((k) => k.value !== key));
-}
-
-function detectEncoding(str: string): "hex" | "base64" | "utf8" {
-  const hexRegex = /^[0-9a-fA-F]+$/;
-  const base64Regex = /^[A-Za-z0-9+/]+=*$/;
-
-  // 1) 先判断 hex
-  if (hexRegex.test(str) && str.length % 2 === 0) {
-    return "hex";
-  }
-
-  // 2) 再判断 base64
-  if (
-    base64Regex.test(str) &&
-    str.length % 4 === 0 &&
-    !/[^A-Za-z0-9+/=]/.test(str)
-  ) {
-    try {
-      Buffer.from(str, "base64");
-      return "base64";
-    } catch {
-      // 如果解码失败，就不是 base64
-    }
-  }
-
-  // 3) 否则就是 utf8
-  return "utf8";
-}
 
 export default function Command() {
   const [mode, setMode] = useState<"ECB" | "CBC">("ECB");
   const [action, setAction] = useState<"encrypt" | "decrypt">("encrypt");
-  const [keyHistory, setKeyHistory] = useState<Sm4KeyHistory[]>([]);
+  const [keyHistory, setKeyHistory] = useState<string[]>([]);
   const [keySelect, setKeySelect] = useState(MANUAL_KEY);
   const [format, setFormat] = useState<"hex" | "base64" | "utf8">("hex");
 
   useEffect(() => {
-    loadKeyHistory().then(setKeyHistory);
+    loadKeyHistory(KEY_HISTORY_STORAGE).then(setKeyHistory);
   }, []);
 
   useEffect(() => {
@@ -130,8 +84,8 @@ export default function Command() {
       }
 
       // 密钥历史要在关窗前写完，否则 showHUD 关窗后这两步可能来不及执行
-      await addKeyToHistory(key);
-      setKeyHistory(await loadKeyHistory());
+      await addKeyToHistory(KEY_HISTORY_STORAGE, key);
+      setKeyHistory(await loadKeyHistory(KEY_HISTORY_STORAGE));
 
       // 复制 + 关窗 + HUD：showHUD 本身会关闭主窗口
       await success(result, {
@@ -169,8 +123,8 @@ export default function Command() {
                   return; // 用户取消
                 }
 
-                await deleteKey(keySelect);
-                setKeyHistory(await loadKeyHistory());
+                await deleteKey(KEY_HISTORY_STORAGE, keySelect);
+                setKeyHistory(await loadKeyHistory(KEY_HISTORY_STORAGE));
                 setKeySelect(MANUAL_KEY);
               }}
             />
@@ -194,11 +148,7 @@ export default function Command() {
       >
         <Form.Dropdown.Item value={MANUAL_KEY} title="手动输入" />
         {keyHistory.map((k) => (
-          <Form.Dropdown.Item
-            key={k.value}
-            value={k.value}
-            title={`${k.value.slice(0, 6)}******${k.value.slice(28, 32)}`}
-          />
+          <Form.Dropdown.Item key={k} value={k} title={maskKey(k)} />
         ))}
       </Form.Dropdown>
 

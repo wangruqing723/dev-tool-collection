@@ -1,12 +1,12 @@
 {
     "$schema": "https://www.raycast.com/schemas/extension.json",
-    "name": "crypto-tool",
+    "name": "crypto-advanced",
     "version": "1.0.0",
-    "title": "Crypto-Tool",
-    "description": "加密工具（Hash、Bcrypt、JWT）",
+    "title": "Crypto-Advanced",
+    "description": "加解密工具（SM4、AES、RSA）",
     "icon": "extension-icon.png",
     "author": "ruqing_wang",
-    "owner": "ruqingwang-crypto-tool",
+    "owner": "ruqingwang-crypto-advanced",
     "access": "private",
     "categories": [
         "Developer Tools"
@@ -18,31 +18,30 @@
     "license": "MIT",
     "commands": [
         {
-            "name": "hash",
-            "title": "Hash",
-            "subtitle": "MD5 / SHA-1 / SHA-256 / SHA-512 / SM3",
-            "description": "Hash 生成工具，支持 MD5、SHA-1、SHA-256、SHA-512、SM3，支持加盐",
+            "name": "sm4",
+            "title": "SM4 加密",
+            "subtitle": "SM4 加密/解密",
+            "description": "SM4 加密工具，支持 ECB/CBC 模式，支持 Hex/Base64/UTF-8 格式",
             "mode": "view"
         },
         {
-            "name": "bcrypt",
-            "title": "Bcrypt",
-            "subtitle": "密码哈希和验证",
-            "description": "Bcrypt 密码处理工具，支持密码哈希和验证",
+            "name": "aes",
+            "title": "AES 加密",
+            "subtitle": "AES 加密/解密",
+            "description": "AES 加密工具，支持 CBC/GCM/ECB 模式，密钥长度自动推定（AES-128/192/256）",
             "mode": "view"
         },
         {
-            "name": "jwt",
-            "title": "JWT",
-            "subtitle": "JWT 解析和生成",
-            "description": "JWT 工具，支持 JWT 解析和生成",
+            "name": "rsa",
+            "title": "RSA",
+            "subtitle": "RSA 加解密 / 签名验签 / 生成密钥对",
+            "description": "RSA 工具，支持 OAEP 与 PKCS#1 v1.5 填充、签名验签、生成密钥对",
             "mode": "view"
         }
     ],
     "dependencies": {
         "@raycast/api": "^1.104.17",
         "@raycast/utils": "^2.2.5",
-        "bcryptjs": "^3.0.3",
         "gm-crypto": "^0.1.12"
     },
     "devDependencies": {

@@ -15,8 +15,6 @@ declare type Preferences = ExtensionPreferences
 declare namespace Preferences {
   /** Preferences accessible in the `hash` command */
   export type Hash = ExtensionPreferences & {}
-  /** Preferences accessible in the `sm4` command */
-  export type Sm4 = ExtensionPreferences & {}
   /** Preferences accessible in the `bcrypt` command */
   export type Bcrypt = ExtensionPreferences & {}
   /** Preferences accessible in the `jwt` command */
@@ -26,8 +24,6 @@ declare namespace Preferences {
 declare namespace Arguments {
   /** Arguments passed to the `hash` command */
   export type Hash = {}
-  /** Arguments passed to the `sm4` command */
-  export type Sm4 = {}
   /** Arguments passed to the `bcrypt` command */
   export type Bcrypt = {}
   /** Arguments passed to the `jwt` command */
