@@ -1,7 +1,7 @@
 {
     "$schema": "https://www.raycast.com/schemas/extension.json",
     "name": "generator-tool",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "title": "Generator-Tool",
     "description": "字符生成工具（UUID、二维码、变量名转换、随机字符串）",
     "icon": "extension-icon.png",

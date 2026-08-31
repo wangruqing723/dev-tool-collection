@@ -1,50 +1,18 @@
 import { List, ActionPanel, Action } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { useClipboardPrefill } from "./hooks/useClipboardPrefill";
+import {
+  toCamelCase,
+  toConstantCase,
+  toDotCase,
+  toKebabCase,
+  toPascalCase,
+  toSnakeCase,
+} from "./utils/case-convert";
 
 interface NameConversion {
   style: string;
   value: string;
-}
-
-function toCamelCase(str: string): string {
-  return str
-    .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ""))
-    .replace(/^(.)/, (c) => c.toLowerCase());
-}
-
-function toPascalCase(str: string): string {
-  return str
-    .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ""))
-    .replace(/^(.)/, (c) => c.toUpperCase());
-}
-
-function toSnakeCase(str: string): string {
-  return str
-    .replace(/([A-Z])/g, "_$1")
-    .replace(/[-\s]+/g, "_")
-    .toLowerCase()
-    .replace(/^_/, "");
-}
-
-function toKebabCase(str: string): string {
-  return str
-    .replace(/([A-Z])/g, "-$1")
-    .replace(/[_\s]+/g, "-")
-    .toLowerCase()
-    .replace(/^-/, "");
-}
-
-function toConstantCase(str: string): string {
-  return toSnakeCase(str).toUpperCase();
-}
-
-function toDotCase(str: string): string {
-  return str
-    .replace(/([A-Z])/g, ".$1")
-    .replace(/[-_\s]+/g, ".")
-    .toLowerCase()
-    .replace(/^\./, "");
 }
 
 export default function VariableNameCommand() {
